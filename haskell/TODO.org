@@ -1,0 +1,6 @@
+* Tasks
+** TODO text-based URI library instead of uri
+** TODO case insensitive host matching
+** TODO case insensitive param matching
+** TODO fix tests hanging on 7.6.3
+** TODO haddocks-quality docs
