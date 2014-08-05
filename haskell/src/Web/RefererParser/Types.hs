@@ -1,19 +1,20 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 module Web.RefererParser.Types where
 
 --------------------------------------------------
-import Control.Applicative
-import Control.Monad
-import Data.Aeson (withText)
-import Data.Hashable (Hashable)
-import Data.Text (Text)
-import Data.Typeable
-import Data.Yaml
-import GHC.Generics (Generic)
+import           Control.Applicative
+import           Control.Monad
+import           Data.Aeson          (withText)
+import           Data.Hashable       (Hashable)
+import           Data.Text           (Text)
+import           Data.Typeable
+import           Data.Yaml
+import           GHC.Generics        (Generic)
 --------------------------------------------------
+
 
 -- | Classification of providers
 data Medium = Unknown
@@ -23,17 +24,30 @@ data Medium = Unknown
 
 instance Hashable Medium
 
+
 -- | Service provider for the referred traffic
-newtype Provider = Provider Text deriving (Show, Eq, Hashable, FromJSON)
+newtype Provider = Provider { getProvider :: Text }
+    deriving (Show, Eq, Hashable, FromJSON)
+
 
 -- | User search term parameter if applicable
-newtype Term = Term Text deriving (Show, Eq)
+newtype Term = Term { getTerm :: Text }
+    deriving (Show, Eq)
+
 
 -- | Domain of the referer. Note this is not always a bare host.
 -- Sometimes, it can include a path like www.google.com/products
-newtype Domain = Domain Text deriving (Show, Eq, Hashable, FromJSON, Typeable)
+newtype Domain = Domain { getDomain :: Text }
+    deriving (Show, Eq, Hashable, FromJSON, Typeable)
 
-data Referer = Referer Medium Provider Domain (Maybe Term) deriving (Show, Eq)
+
+data Referer = Referer {
+      refMedium   :: Medium
+    , refProvider :: Provider
+    , refDomain   :: Domain
+    , refTerm     :: Maybe Term
+    } deriving (Show, Eq)
+
 
 instance FromJSON Medium where
   parseJSON = withText "Medium" parseMedium
