@@ -1,0 +1,30 @@
+# ############################################################################
+#
+# This file adds support for a fifth category, display ads.  It also adds
+# information about paid vs organic referers.
+#
+# Broken down into:
+#
+# 1. Medium-unknown providers
+# 2. Email providers
+# 3. Social providers
+# 4. Search providers
+# 5. Display ad providers
+
+
+# #######################################################################################################
+#
+# SEARCH PROVIDERS
+
+display:
+
+  Doubleclick:
+    domains:
+      - ad.doubleclick.net/adi
+
+paidsearch:
+
+  Google:
+    domains:
+      - www.google.com/aclk
+

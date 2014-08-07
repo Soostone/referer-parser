@@ -8,11 +8,13 @@ module Web.RefererParser.Types where
 import           Control.Applicative
 import           Control.Monad
 import           Data.Aeson          (withText)
+import           Data.ByteString     (ByteString)
 import           Data.Hashable       (Hashable)
 import           Data.Text           (Text)
 import           Data.Typeable
 import           Data.Yaml
 import           GHC.Generics        (Generic)
+import           URI.ByteString
 --------------------------------------------------
 
 
@@ -20,10 +22,14 @@ import           GHC.Generics        (Generic)
 data Medium = Unknown
             | Email
             | Social
-            | Search deriving (Show, Eq, Generic)
+            | Search
+            | Display deriving (Show, Eq, Generic)
 
 instance Hashable Medium
 
+-- | Whether this was a paid or organic click
+data ClickType = Organic
+               | Paid deriving (Show, Eq, Generic)
 
 -- | Service provider for the referred traffic
 newtype Provider = Provider { getProvider :: Text }
@@ -41,11 +47,20 @@ newtype Domain = Domain { getDomain :: Text }
     deriving (Show, Eq, Hashable, FromJSON, Typeable)
 
 
-data Referer = Referer {
-      refMedium   :: Medium
-    , refProvider :: Provider
-    , refDomain   :: Domain
-    , refTerm     :: Maybe Term
+data RefererMeta = RefererMeta
+    { rmMedium    :: Medium
+    , rmProvider  :: Provider
+    , rmDomain    :: Domain
+    , rmTerm      :: Maybe Term
+    , rmClickType :: Maybe ClickType
+    } deriving (Show, Eq)
+
+
+data Referer = Referer
+    { refRawText  :: ByteString
+    , refURI      :: URI
+    , refMeta     :: Maybe RefererMeta
+    , refChildren :: [(ByteString, Referer)]
     } deriving (Show, Eq)
 
 
@@ -56,4 +71,5 @@ instance FromJSON Medium where
       parseMedium "email"   = pure Email
       parseMedium "social"  = pure Social
       parseMedium "search"  = pure Search
+      parseMedium "display" = pure Display
       parseMedium _         = mzero

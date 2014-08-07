@@ -5,13 +5,18 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TupleSections              #-}
 
-module Web.RefererParser.Lookup ( lookupReferer ) where
+module Web.RefererParser.Lookup
+  ( mkReferer
+  ) where
 
 -------------------------------------------------------------------------------
 import           Control.Applicative
+import           Control.Error
 import           Control.Monad
 import           Data.Aeson              (withArray, withObject)
 import           Data.Bifunctor
+import           Data.ByteString         (ByteString)
+import qualified Data.ByteString         as B
 import           Data.FileEmbed          (embedFile)
 import qualified Data.Foldable           as F
 import           Data.Hashable           (Hashable)
@@ -20,10 +25,15 @@ import qualified Data.HashMap.Strict     as HM
 import           Data.List               (foldl')
 import           Data.List.NonEmpty      (NonEmpty (..))
 import qualified Data.List.NonEmpty      as NE
-import           Data.Text               (Text, pack)
+import           Data.Map                (Map)
+import qualified Data.Map                as M
+import           Data.Monoid
+import           Data.Text               (Text)
+import           Data.Text.Encoding
 import           Data.Typeable
 import           Data.Yaml
-import           Text.URI
+import           Snap.Core
+import           URI.ByteString
 -------------------------------------------------------------------------------
 import           Web.RefererParser.Types
 -------------------------------------------------------------------------------
@@ -81,12 +91,20 @@ refererMap = either error buildMap $ decodeEither $(embedFile "data/referers.yml
 {-# NOINLINE refererMap #-}
 
 
----- Public API
-lookupReferer :: URI -> Maybe Referer
-lookupReferer u = buildReferer <$> (doLookup =<< expandDomains u)
+------------------------------------------------------------------------------
+-- | Public API
+mkReferer :: ByteString -> Maybe Referer
+mkReferer bs = do
+    u <- hush $ parseURI bs
+    let params = parseUrlEncoded (uriQuery u)
+    let buildReferer (domain, (m, p, pns)) =
+          RefererMeta m p domain (lookupTerm (uriParams params) pns) Nothing
+        meta = buildReferer <$> (doLookup $ expandDomains u)
+        mkChild (k,v) = (k,) <$> mkReferer (B.concat v)
+        cs = catMaybes $ map mkChild $ ("", [uriQuery u]) : M.toList params
+    return $ Referer bs u meta cs
   where
     doLookup = lookupFirst (`HM.lookup` refererMap)
-    buildReferer (domain, (m, p, pns)) = Referer m p domain (lookupTerm u pns)
 
 
 ---- Parsing helpers
@@ -108,25 +126,25 @@ insertMany :: (Eq k, Hashable k) => [k] -> v -> HashMap k v -> HashMap k v
 insertMany ks v h = foldl' (\h' k -> HM.insert k v h') h ks
 
 
-expandDomains :: URI -> Maybe [Domain]
-expandDomains u = do
-  host <- uriRegName u
+expandDomains :: URI -> [Domain]
+expandDomains u =
+    [packDomain $ host <> uriPath u, packDomain host]
+  where
+    host = uriAuthority u
    -- prefer expanded url
-  return [packDomain $ host ++ uriPath u, packDomain host]
 
 
-lookupTerm :: URI -> [ParameterName] -> Maybe Term
-lookupTerm u pns = do
-  params <- uriParams u
-  Term <$> lookupFirstMatch params
+lookupTerm :: [(ParameterName, Text)] -> [ParameterName] -> Maybe Term
+lookupTerm params pns =
+    Term <$> lookupFirstMatch params
   where
-    lookupFirstMatch params = msum . map (`lookup` params) $ pns
+    lookupFirstMatch ps = msum . map (`lookup` ps) $ pns
 
 
-uriParams :: URI -> Maybe [(ParameterName, Text)]
-uriParams u = map packParam . queryToPairs <$> uriQuery u
+uriParams :: Map ByteString [ByteString] -> [(ParameterName, Text)]
+uriParams params = map packParam $ M.toList params
   where
-    packParam = bimap (ParameterName . pack) pack
+    packParam = bimap (ParameterName . decodeUtf8) (decodeUtf8 . B.concat)
 
 
 showType :: Typeable a => a -> String
@@ -138,5 +156,5 @@ lookupFirst finder = msum . map attemptLookup
   where attemptLookup x = (x, ) <$> finder x
 
 
-packDomain :: String -> Domain
-packDomain = Domain . pack
+packDomain :: ByteString -> Domain
+packDomain = Domain . decodeUtf8
