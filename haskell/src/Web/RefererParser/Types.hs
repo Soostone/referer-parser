@@ -59,6 +59,7 @@ data RefererMeta = RefererMeta
 data Referer = Referer
     { refRawText  :: ByteString
     , refURI      :: URI
+    , refParams   :: [(ByteString, ByteString)]
     , refMeta     :: Maybe RefererMeta
     , refChildren :: [(ByteString, Referer)]
     } deriving (Show, Eq)

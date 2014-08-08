@@ -102,7 +102,7 @@ mkReferer bs = do
         meta = buildReferer <$> (doLookup $ expandDomains u)
         mkChild (k,v) = (k,) <$> mkReferer (B.concat v)
         cs = catMaybes $ map mkChild $ ("", [uriQuery u]) : M.toList params
-    return $ Referer bs u meta cs
+    return $ Referer bs u (map (second B.concat) $ M.toList params) meta cs
   where
     doLookup = lookupFirst (`HM.lookup` refererMap)
 
