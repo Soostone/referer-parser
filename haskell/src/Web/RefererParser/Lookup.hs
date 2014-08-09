@@ -97,8 +97,8 @@ mkReferer :: ByteString -> Maybe Referer
 mkReferer bs = do
     u <- hush $ parseURI bs
     let params = parseUrlEncoded (uriQuery u)
-    let buildReferer (domain, (m, p, pns)) =
-          RefererMeta m p domain (lookupTerm (uriParams params) pns) Nothing
+    let buildReferer (_, (m, p, pns)) =
+          RefererMeta m p (lookupTerm (uriParams params) pns) Nothing
         meta = buildReferer <$> (doLookup $ expandDomains u)
         mkChild (k,v) = (k,) <$> mkReferer (B.concat v)
         cs = catMaybes $ map mkChild $ ("", [uriQuery u]) : M.toList params
@@ -134,9 +134,9 @@ expandDomains u =
    -- prefer expanded url
 
 
-lookupTerm :: [(ParameterName, Text)] -> [ParameterName] -> Maybe Term
+lookupTerm :: [(ParameterName, Text)] -> [ParameterName] -> Maybe SearchTerm
 lookupTerm params pns =
-    Term <$> lookupFirstMatch params
+    SearchTerm <$> lookupFirstMatch params
   where
     lookupFirstMatch ps = msum . map (`lookup` ps) $ pns
 

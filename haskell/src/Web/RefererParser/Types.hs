@@ -27,9 +27,21 @@ data Medium = Unknown
 
 instance Hashable Medium
 
+mediumBS :: Medium -> ByteString
+mediumBS Unknown = "unknown"
+mediumBS Email = "email"
+mediumBS Social = "social"
+mediumBS Search = "search"
+mediumBS Display = "display"
+
 -- | Whether this was a paid or organic click
 data ClickType = Organic
                | Paid deriving (Show, Eq, Generic)
+
+
+clickTypeBS :: ClickType -> ByteString
+clickTypeBS Organic = "organic"
+clickTypeBS Paid = "paid"
 
 -- | Service provider for the referred traffic
 newtype Provider = Provider { getProvider :: Text }
@@ -37,7 +49,7 @@ newtype Provider = Provider { getProvider :: Text }
 
 
 -- | User search term parameter if applicable
-newtype Term = Term { getTerm :: Text }
+newtype SearchTerm = SearchTerm { getSearchTerm :: Text }
     deriving (Show, Eq)
 
 
@@ -48,11 +60,10 @@ newtype Domain = Domain { getDomain :: Text }
 
 
 data RefererMeta = RefererMeta
-    { rmMedium    :: Medium
-    , rmProvider  :: Provider
-    , rmDomain    :: Domain
-    , rmTerm      :: Maybe Term
-    , rmClickType :: Maybe ClickType
+    { rmMedium     :: Medium
+    , rmProvider   :: Provider
+    , rmSearchTerm :: Maybe SearchTerm
+    , rmClickType  :: Maybe ClickType
     } deriving (Show, Eq)
 
 

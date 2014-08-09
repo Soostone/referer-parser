@@ -18,19 +18,18 @@ main = defaultMain $ testGroup "referer-parser" [lookupTests]
 lookupTests = testGroup "Web.RefererParser.Lookup" [lookupRefererTests]
 
 ------------------------------------------------------------------------------
-lookupRefererTests = testGroup "lookupReferer" [
-    testCase "looks up google search" $
+lookupRefererTests = testGroup "lookupReferer"
+  [ testCase "looks up google search" $
       -- Added / before the ? to make the tests pass with the regex parser
       mkTest "http://www.google.com/?q=foo"
-        (Just $ RefererMeta Search (Provider "Google") (Domain "www.google.com")
-                            (Just . Term $ "foo") Nothing)
+        (Just $ RefererMeta Search (Provider "Google")
+                            (Just . SearchTerm $ "foo") Nothing)
         [("q", "foo")] []
 
   , testCase "prefers more specific host matches" $
       mkTest "http://www.google.com/products?q=foo"
         (Just $ RefererMeta Search (Provider "Google Product Search")
-                      (Domain "www.google.com/products")
-                      (Just . Term $ "foo") Nothing)
+                      (Just . SearchTerm $ "foo") Nothing)
         [("q", "foo")] []
 
   , testCase "fails to parse unknown providers" $
@@ -39,9 +38,9 @@ lookupRefererTests = testGroup "lookupReferer" [
   , testCase "omits parameters not in the parameters list" $
       -- Added / before the ? to make the tests pass with the regex parser
       mkTest "http://www.google.com/?unrelated=yup"
-        (Just $ RefererMeta Search (Provider "Google") (Domain "www.google.com")
+        (Just $ RefererMeta Search (Provider "Google")
                             Nothing Nothing) [("unrelated", "yup")] []
-                                               ]
+  ]
 
 
 mkTest raw meta params children = mkReferer raw @?= fmap build u
